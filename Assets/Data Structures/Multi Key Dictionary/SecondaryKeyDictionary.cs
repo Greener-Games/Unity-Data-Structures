@@ -31,9 +31,9 @@ namespace GG.DataStructures
         public int Count => Values.Count();
 
         
-        public TV this[T1 primary] => GetValueFromPrimary(primary);
+        public TV this[T1 primary] => GetValueUsingPrimaryKey(primary);
 
-        public TV this[T2 secondary] => GetValueFromSecondary(secondary);
+        public TV this[T2 secondary] => GetValueUsingSecondaryKey(secondary);
         
         /// <summary>
         ///     This is used to attempt to grab from primary first, if not match will attempt to find from secondary keys
@@ -42,9 +42,49 @@ namespace GG.DataStructures
         /// <param name="primary"></param>
         /// <param name="secondary"></param>
         /// <exception cref="KeyNotFoundException"></exception>
-        public TV this[T1 primary, T2 secondary] => GetValueFromEither(primary, secondary);
-        
+        public TV this[T1 primary, T2 secondary] => GetValue(primary, secondary);
 
+        /// <summary>
+        ///     Gets the value based on the primary key
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public TV GetValue(T1 key)
+        {
+            return GetValueUsingPrimaryKey(key);
+        }
+
+        /// <summary>
+        ///     Gets the value from the secondary key
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public TV GetValue(T2 key)
+        {
+            return GetValueUsingSecondaryKey(key);
+        }
+
+        /// <summary>
+        ///     Try get value from either based searching with primary key first
+        /// </summary>
+        /// <param name="primary"></param>
+        /// <param name="secondary"></param>
+        /// <returns></returns>
+        /// <exception cref="KeyNotFoundException"></exception>
+        public TV GetValue(T1 primary, T2 secondary)
+        {
+            if (primaryDictionary.ContainsKey(primary))
+            {
+                return GetValueUsingPrimaryKey(primary);
+            }
+
+            if (secondaryKeyLink.ContainsKey(secondary))
+            {
+                return GetValueUsingSecondaryKey(secondary);
+            }
+
+            throw new KeyNotFoundException("Key not found");
+        }
         
         /// <summary>
         ///     Gets the value based on the primary key
@@ -52,7 +92,7 @@ namespace GG.DataStructures
         /// <param name="primaryKey"></param>
         /// <returns></returns>
         /// <exception cref="KeyNotFoundException"></exception>
-        public TV GetValueFromPrimary(T1 primaryKey)
+        public TV GetValueUsingPrimaryKey(T1 primaryKey)
         {
             if (primaryDictionary.ContainsKey(primaryKey))
             {
@@ -68,37 +108,15 @@ namespace GG.DataStructures
         /// <param name="secondaryKey"></param>
         /// <returns></returns>
         /// <exception cref="KeyNotFoundException"></exception>
-        public TV GetValueFromSecondary(T2 secondaryKey)
+        public TV GetValueUsingSecondaryKey(T2 secondaryKey)
         {
             if (secondaryKeyLink.ContainsKey(secondaryKey))
             {
-                T1 primarykey = secondaryKeyLink[secondaryKey];
-                return GetValueFromPrimary(primarykey);
+                T1 primaryKey = secondaryKeyLink[secondaryKey];
+                return GetValueUsingPrimaryKey(primaryKey);
             }
 
             throw new KeyNotFoundException("Secondary not found");
-        }
-
-        /// <summary>
-        ///     Try get value from either based searching with primary key first
-        /// </summary>
-        /// <param name="primary"></param>
-        /// <param name="secondary"></param>
-        /// <returns></returns>
-        /// <exception cref="KeyNotFoundException"></exception>
-        public TV GetValueFromEither(T1 primary, T2 secondary)
-        {
-            if (primaryDictionary.ContainsKey(primary))
-            {
-                return GetValueFromPrimary(primary);
-            }
-
-            if (secondaryKeyLink.ContainsKey(secondary))
-            {
-                return GetValueFromSecondary(secondary);
-            }
-
-            throw new KeyNotFoundException("Key not found");
         }
         
         /// <summary>
@@ -145,32 +163,7 @@ namespace GG.DataStructures
 
             LinkSecondaryKey(key, secondaryKey);
         }
-
-        public void RemoveUsingPrimary(T1 key)
-        {
-            if (!primaryDictionary.ContainsKey(key))
-            {
-                throw new InvalidOperationException("No item with primary key");
-            }
-
-            T2 secondary;
-            if (GetSecondaryKey(key, out secondary))
-            {
-                Remove(secondary);
-            }
-        }
         
-        public void RemoveUsingSecondary(T2 key)
-        {
-            if (!secondaryKeyLink.ContainsKey(key))
-            {
-                throw new InvalidOperationException("No item with primary key");
-            }
-
-            primaryDictionary.Remove(secondaryKeyLink[key]);
-            secondaryKeyLink.Remove(key);
-        }
-
         /// <summary>
         ///     Remove an entry from the dictionary
         /// </summary>
@@ -188,9 +181,33 @@ namespace GG.DataStructures
         /// <exception cref="InvalidOperationException"></exception>
         public void Remove(T2 key)
         {
-RemoveUsingSecondary(key);
+            RemoveUsingSecondary(key);
         }
 
+        public void RemoveUsingPrimary(T1 key)
+        {
+            if (!primaryDictionary.ContainsKey(key))
+            {
+                throw new InvalidOperationException("No item with primary key");
+            }
+
+            if (GetSecondaryKey(key, out T2 secondary))
+            {
+                Remove(secondary);
+            }
+        }
+        
+        public void RemoveUsingSecondary(T2 key)
+        {
+            if (!secondaryKeyLink.ContainsKey(key))
+            {
+                throw new InvalidOperationException("No item with primary key");
+            }
+
+            primaryDictionary.Remove(secondaryKeyLink[key]);
+            secondaryKeyLink.Remove(key);
+        }
+        
         /// <summary>
         ///     Link a secondary key to a primary key
         /// </summary>
@@ -239,6 +256,16 @@ RemoveUsingSecondary(key);
             }
         }
 
+        public bool ContainsKey(T1 key)
+        {
+            return ContainsPrimaryKey(key);
+        }
+
+        public bool ContainsKey(T2 secondaryKey)
+        {
+            return ContainsSecondaryKey(secondaryKey);
+        }
+        
         public bool ContainsPrimaryKey(T1 primaryKey)
         {
             return primaryDictionary.ContainsKey(primaryKey);
@@ -255,17 +282,7 @@ RemoveUsingSecondary(key);
 
             return false;
         }
-
-        public bool ContainsKey(T1 key)
-        {
-            return ContainsPrimaryKey(key);
-        }
-
-        public bool ContainsKey(T2 secondaryKey)
-        {
-            return ContainsSecondaryKey(secondaryKey);
-        }
-
+        
         public void Clear()
         {
             primaryDictionary.Clear();
