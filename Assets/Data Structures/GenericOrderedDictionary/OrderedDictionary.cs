@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Threading;
-using JetBrains.Annotations;
 
 namespace GG.DataStructures
 {
@@ -15,27 +14,38 @@ namespace GG.DataStructures
 	/// <typeparam name="TValue">The type of the values in the dictionary</typeparam>
 	public class OrderedDictionary<TKey, TValue>
     {
-	    Dictionary<TKey, TValue> dictionary;
-        List<KeyValuePair<TKey, TValue>> list;
-        readonly Func<KeyValuePair<TKey, TValue>, object> comparer;
+	    /// <summary>
+	    /// unsorted dictionary of items
+	    /// </summary>
+	    Dictionary<TKey, TValue> dictionary = new Dictionary<TKey, TValue>();
+	    
+	    /// <summary>
+	    /// sored list of items via comparator
+	    /// </summary>
+        List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
+	    
+        readonly Func<KeyValuePair<TKey, TValue>, object>[] comparer;
         
-        public int Count => List.Count;
+        public int Count => list.Count;
+        
         public List<TKey> Keys => dictionary.Keys.ToList();
-        public List<TValue> OrderedValues => List.Select(t => t.Value).ToList();
-
+        public List<TValue> OrderedValues => list.Select(t => t.Value).ToList();
+        
+        
         public OrderedDictionary(Func<KeyValuePair<TKey, TValue>, object>  comparer = null)
         {
-	        this.comparer = comparer;
+	        this.comparer = new[] {comparer};
         }
-	    
-	    Dictionary<TKey, TValue> Dictionary => dictionary ?? (dictionary = new Dictionary<TKey, TValue>());
-	    
-	    List<KeyValuePair<TKey, TValue>> List => list ?? (list = new List<KeyValuePair<TKey, TValue>>());
-
+        
+        public OrderedDictionary(params Func<KeyValuePair<TKey, TValue>, object>[] predicate)
+        {
+	        this.comparer = predicate;
+        }
+        
 	    public int Add(TKey key, TValue value)
 	    {
-		    Dictionary.Add(key, value);
-		    List.Add(new KeyValuePair<TKey, TValue>(key, value));
+		    dictionary.Add(key, value);
+		    list.Add(new KeyValuePair<TKey, TValue>(key, value));
 		    Sort();
 		    return Count - 1;
 	    }
@@ -47,8 +57,8 @@ namespace GG.DataStructures
                 throw new ArgumentOutOfRangeException("index");
             }
 
-            Dictionary.Add(key, value);
-            List.Insert(index, new KeyValuePair<TKey, TValue>(key, value));
+            dictionary.Add(key, value);
+            list.Insert(index, new KeyValuePair<TKey, TValue>(key, value));
             Sort();
         }
 	    
@@ -62,9 +72,9 @@ namespace GG.DataStructures
 		    int index = IndexOfKey(key);
 		    if (index >= 0)
 		    {
-			    if (Dictionary.Remove(key))
+			    if (dictionary.Remove(key))
 			    {
-				    List.RemoveAt(index);
+				    list.RemoveAt(index);
 				    return true;
 			    }
 		    }
@@ -79,21 +89,80 @@ namespace GG.DataStructures
                 throw new ArgumentOutOfRangeException("index", "'index' must be non-negative and less than the size of the collection");
             }
 
-            TKey key = List[index].Key;
+            TKey key = list[index].Key;
 
-            List.RemoveAt(index);
-            Dictionary.Remove(key);
+            list.RemoveAt(index);
+            dictionary.Remove(key);
         }
+
+	    public KeyValuePair<TKey, TValue> First(Func<KeyValuePair<TKey, TValue>,bool> predicate)
+	    {
+		    return list.FirstOrDefault(predicate);
+	    }
+	    
+	    public KeyValuePair<TKey, TValue> FirstOrDefault(Func<KeyValuePair<TKey, TValue>,bool> predicate)
+	    {
+		    return list.FirstOrDefault(predicate);
+	    }
+	    
+	    public TValue First(Func<TValue,bool> predicate)
+	    {
+		    return OrderedValues.First(predicate);
+	    }
+	    
+	    public TValue FirstOrDefault(Func<TValue,bool> predicate)
+	    {
+		    return OrderedValues.FirstOrDefault(predicate);
+	    }
 
 	    void Sort()
 	    {
-		    list = list.OrderBy(comparer).ToList();
-
+		    IOrderedEnumerable<KeyValuePair<TKey, TValue>> x = list.OrderBy(comparer[0]);
+		    if (comparer.Length > 1)
+		    {
+			    for (int i = 1; i < comparer.Length - 1; i++)
+			    {
+				    x = x.ThenBy(comparer[i]);
+			    }
+			    list = x.ToList();
+		    }
+		    else
+		    {
+			    list = x.ToList();
+		    }
 	    }
 	    
+	    /// <summary>
+	    /// Runs a particular orderby/then by, does not save this as part of the ordered list
+	    /// </summary>
+	    /// <param name="predicate"></param>
+	    /// <returns></returns>
+	    public List<KeyValuePair<TKey, TValue>> Sort(params Func<KeyValuePair<TKey, TValue>, object>[] predicate)
+	    {
+		    if (predicate.Length >= 1)
+		    {
+				IOrderedEnumerable<KeyValuePair<TKey, TValue>> x = list.OrderBy(predicate[0]);
+				for (int i = 1; i < predicate.Length - 1; i++)
+				{
+					x = x.ThenBy(predicate[i]);
+				}
+
+				return x.ToList();
+		    }
+		    else
+		    {
+			    return list;
+		    }
+	    }
+	    
+	    /// <summary>
+	    /// return value at index
+	    /// </summary>
+	    /// <param name="index"></param>
+	    /// <exception cref="ArgumentOutOfRangeException"></exception>
 	    public TValue this[int index]
         {
-            get => List[index].Value;
+            get => list[index].Value;
 
             set
             {
@@ -102,23 +171,27 @@ namespace GG.DataStructures
                     throw new ArgumentOutOfRangeException("index", "'index' must be non-negative and less than the size of the collection");
                 }
 
-                TKey key = List[index].Key;
+                TKey key = list[index].Key;
 
-                List[index] = new KeyValuePair<TKey, TValue>(key, value);
-                Dictionary[key] = value;
+                list[index] = new KeyValuePair<TKey, TValue>(key, value);
+                dictionary[key] = value;
                 Sort();
             }
         }
 	    
+	    /// <summary>
+	    /// Return value for key
+	    /// </summary>
+	    /// <param name="key"></param>
 	    public TValue this[TKey key]
 	    {
-		    get => Dictionary[key];
+		    get => dictionary[key];
 		    set
 		    {
-			    if (Dictionary.ContainsKey(key))
+			    if (dictionary.ContainsKey(key))
 			    {
-				    Dictionary[key] = value;
-				    List[IndexOfKey(key)] = new KeyValuePair<TKey, TValue>(key, value);
+				    dictionary[key] = value;
+				    list[IndexOfKey(key)] = new KeyValuePair<TKey, TValue>(key, value);
 			    }
 			    else
 			    {
@@ -131,13 +204,13 @@ namespace GG.DataStructures
 	    
 	    public void Clear()
         {
-            Dictionary.Clear();
-            List.Clear();
+            dictionary.Clear();
+            list.Clear();
         }
 	    
 	    public bool ContainsKey(TKey key)
         {
-            return Dictionary.ContainsKey(key);
+            return dictionary.ContainsKey(key);
         }
 	    
 	    public int IndexOfKey(TKey key)
