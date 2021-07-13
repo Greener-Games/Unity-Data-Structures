@@ -12,6 +12,8 @@ namespace GG.DataStructures
 	/// </summary>
 	/// <typeparam name="TKey">The type of the keys in the dictionary</typeparam>
 	/// <typeparam name="TValue">The type of the values in the dictionary</typeparam>
+	
+	[System.Serializable]
 	public class OrderedDictionary<TKey, TValue>
     {
 	    /// <summary>
