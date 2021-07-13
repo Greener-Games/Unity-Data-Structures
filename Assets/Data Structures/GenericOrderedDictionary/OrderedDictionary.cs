@@ -19,12 +19,12 @@ namespace GG.DataStructures
 	    /// <summary>
 	    /// unsorted dictionary of items
 	    /// </summary>
-	    Dictionary<TKey, TValue> dictionary = new Dictionary<TKey, TValue>();
+	    [SerializeField] Dictionary<TKey, TValue> dictionary = new Dictionary<TKey, TValue>();
 	    
 	    /// <summary>
 	    /// sored list of items via comparator
 	    /// </summary>
-        List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
+        [SerializeField] List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
 	    
         readonly Func<KeyValuePair<TKey, TValue>, object>[] comparer;
         
