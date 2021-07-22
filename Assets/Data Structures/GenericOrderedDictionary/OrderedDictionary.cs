@@ -120,7 +120,9 @@ namespace GG.DataStructures
 
 	    void Sort()
 	    {
-		    IOrderedEnumerable<KeyValuePair<TKey, TValue>> x = list.OrderBy(comparer[0]);
+	       if(comparer.lenght > 0)
+	       {
+	    	    IOrderedEnumerable<KeyValuePair<TKey, TValue>> x = list.OrderBy(comparer[0]);
 		    if (comparer.Length > 1)
 		    {
 			    for (int i = 1; i < comparer.Length - 1; i++)
@@ -133,6 +135,7 @@ namespace GG.DataStructures
 		    {
 			    list = x.ToList();
 		    }
+		}
 	    }
 	    
 	    /// <summary>
