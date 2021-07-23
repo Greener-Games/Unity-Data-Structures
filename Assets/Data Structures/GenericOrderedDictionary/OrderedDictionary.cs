@@ -36,8 +36,11 @@ namespace GG.DataStructures
         public List<TKey> Keys => dictionary.Keys.ToList();
         public List<TValue> OrderedValues => list.Select(t => t.Value).ToList();
 
+        public OrderedDictionary()
+        {
+        }
 
-        public OrderedDictionary(Func<KeyValuePair<TKey, TValue>, object> comparer = null)
+        public OrderedDictionary(Func<KeyValuePair<TKey, TValue>, object> comparer)
         {
             this.comparer = new[] {comparer};
         }
