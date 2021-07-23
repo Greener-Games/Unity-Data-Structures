@@ -125,7 +125,7 @@ namespace GG.DataStructures
 
         void Sort()
         {
-            if (comparer.Length > 0)
+            if (comparer != null && comparer.Length > 0)
             {
                 IOrderedEnumerable<KeyValuePair<TKey, TValue>> x = list.OrderBy(comparer[0]);
                 if (comparer.Length > 1)
