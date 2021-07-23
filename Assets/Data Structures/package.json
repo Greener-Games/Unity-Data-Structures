@@ -2,7 +2,7 @@
   "name": "com.greener-games.unity-data-structures",
   "displayName": "Unity Data Structures",
   "description": "Collection of wrappers for expanded data structures",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "unity": "2018.1",
   "license": "MIT",
   "author": {
